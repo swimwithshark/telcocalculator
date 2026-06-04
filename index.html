@@ -83,6 +83,16 @@
             box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.2);
         }
 
+        .summary-row {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .tax-row {
+            background-color: #f8f9fa;
+            color: #555;
+        }
+
         .total-row {
             background-color: #e9ecef;
             font-size: 1.25rem;
@@ -91,12 +101,14 @@
         #grand-total {
             color: var(--primary-color);
             font-size: 1.5rem;
+            font-weight: bold;
         }
 
         .note {
             font-size: 0.85rem;
             color: #6c757d;
             margin-top: 1rem;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -117,6 +129,14 @@
             <tbody id="calc-body">
                 </tbody>
             <tfoot>
+                <tr class="summary-row">
+                    <td colspan="4" style="text-align: right; padding-right: 20px;">Subtotal:</td>
+                    <td id="pre-tax-total">0.00</td>
+                </tr>
+                <tr class="tax-row">
+                    <td colspan="4" style="text-align: right; padding-right: 20px;">SST (6%):</td>
+                    <td id="sst-amount">0.00</td>
+                </tr>
                 <tr class="total-row">
                     <td colspan="4" style="text-align: right; padding-right: 20px;">Total Monthly Commitment:</td>
                     <td id="grand-total">0.00</td>
@@ -153,7 +173,7 @@
 
         // Calculation Logic
         function calculateCommitment() {
-            let grandTotal = 0;
+            let preTaxTotal = 0;
 
             plans.forEach(plan => {
                 // Find inputs for the specific row
@@ -172,13 +192,19 @@
 
                 const subtotal = costWithoutRebate + costWithRebate;
                 
-                // Update subtotal cell
+                // Update row subtotal cell
                 row.querySelector('.subtotal').textContent = formatCurrency(subtotal);
                 
-                grandTotal += subtotal;
+                preTaxTotal += subtotal;
             });
 
-            // Update Grand Total
+            // Calculate SST and Final Grand Total
+            const sstAmount = preTaxTotal * 0.06;
+            const grandTotal = preTaxTotal + sstAmount;
+
+            // Update Summary Footer
+            document.getElementById('pre-tax-total').textContent = formatCurrency(preTaxTotal);
+            document.getElementById('sst-amount').textContent = formatCurrency(sstAmount);
             document.getElementById('grand-total').textContent = formatCurrency(grandTotal);
         }
 
