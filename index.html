@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telco Proposal Calculator</title>
+    <style>
+        :root {
+            --primary-color: #0f4c81;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            padding: 2rem 1rem;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .calculator-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            width: 100%;
+            max-width: 800px;
+            overflow-x: auto;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            min-width: 600px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        th:first-child, td:first-child {
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        input[type="number"] {
+            width: 70px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.2);
+        }
+
+        .total-row {
+            background-color: #e9ecef;
+            font-size: 1.25rem;
+        }
+
+        #grand-total {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .note {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-container">
+        <h2>Proposal Calculator</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Plan Base Price</th>
+                    <th>Qty (No Rebate)</th>
+                    <th>Qty (With Rebate)</th>
+                    <th>Rebate per Line (RM)</th>
+                    <th>Subtotal (RM)</th>
+                </tr>
+            </thead>
+            <tbody id="calc-body">
+                </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="4" style="text-align: right; padding-right: 20px;">Total Monthly Commitment:</td>
+                    <td id="grand-total">0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+        <p class="note">* Rebate calculation assumes the rebate amount applies only to the quantity entered in the "Qty (With Rebate)" column. If the rebate exceeds the plan price, the line cost is calculated as 0.</p>
+    </div>
+
+    <script>
+        // Define the available plans (Principal and Sub-lines)
+        const plans = [79, 109, 139, 169, 199, 48];
+        const tbody = document.getElementById('calc-body');
+
+        // Function to format currency
+        const formatCurrency = (num) => parseFloat(num).toFixed(2);
+
+        // Generate table rows dynamically
+        plans.forEach(plan => {
+            const tr = document.createElement('tr');
+            
+            // Format the plan name to distinguish sub-lines if needed
+            const planLabel = plan === 48 ? `Sub Line ${plan}` : `Plan ${plan}`;
+
+            tr.innerHTML = `
+                <td>${planLabel}</td>
+                <td><input type="number" min="0" value="0" class="qty-no" data-plan="${plan}"></td>
+                <td><input type="number" min="0" value="0" class="qty-yes" data-plan="${plan}"></td>
+                <td><input type="number" min="0" value="0" step="0.01" class="rebate-amt" data-plan="${plan}"></td>
+                <td class="subtotal" id="subtotal-${plan}">0.00</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Calculation Logic
+        function calculateCommitment() {
+            let grandTotal = 0;
+
+            plans.forEach(plan => {
+                // Find inputs for the specific row
+                const row = document.querySelector(`input.qty-no[data-plan="${plan}"]`).closest('tr');
+                
+                // Parse values (default to 0 if empty)
+                const qtyNoRebate = parseInt(row.querySelector('.qty-no').value) || 0;
+                const qtyWithRebate = parseInt(row.querySelector('.qty-yes').value) || 0;
+                const rebateAmt = parseFloat(row.querySelector('.rebate-amt').value) || 0;
+
+                // Calculate costs
+                const costWithoutRebate = qtyNoRebate * plan;
+                // Ensure the rebate doesn't make the plan cost negative
+                const effectivePlanPriceWithRebate = Math.max(0, plan - rebateAmt); 
+                const costWithRebate = qtyWithRebate * effectivePlanPriceWithRebate;
+
+                const subtotal = costWithoutRebate + costWithRebate;
+                
+                // Update subtotal cell
+                row.querySelector('.subtotal').textContent = formatCurrency(subtotal);
+                
+                grandTotal += subtotal;
+            });
+
+            // Update Grand Total
+            document.getElementById('grand-total').textContent = formatCurrency(grandTotal);
+        }
+
+        // Attach event listeners to all input fields to calculate in real-time
+        document.querySelectorAll('input').forEach(input => {
+            // Select text on click for faster typing
+            input.addEventListener('focus', function() { this.select(); });
+            // Calculate on any change
+            input.addEventListener('input', calculateCommitment);
+        });
+    </script>
+
+</body>
+</html>
